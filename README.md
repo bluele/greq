@@ -38,7 +38,7 @@ func main() {
 Output
 
 ```
-$ go run examples/example.go
+$ go run examples/retry.go
 error: 40X error
 ```
 
