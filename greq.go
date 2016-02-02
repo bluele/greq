@@ -36,6 +36,14 @@ func Post(rawurl string) *Request {
 	return New("POST", rawurl)
 }
 
+func Put(rawurl string) *Request {
+	return New("PUT", rawurl)
+}
+
+func Delete(rawurl string) *Request {
+	return New("DELETE", rawurl)
+}
+
 func New(method, rawurl string) *Request {
 	req := &Request{}
 	req.method = method
@@ -161,6 +169,19 @@ func (req *Request) doReq(method, rawurl string) (*http.Response, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func (req *Request) String() (string, error) {
+	return String(req.Do())
+}
+
+func (req *Request) Bytes() ([]byte, error) {
+	return Bytes(req.Do())
+}
+
+func (req *Request) JSON(ptr interface{}) error {
+	res, err := req.Do()
+	return JSON(res, err, ptr)
 }
 
 func (req *Request) Debug(debug bool) *Request {
