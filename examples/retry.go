@@ -13,7 +13,7 @@ func main() {
 	res, err := greq.Get("http://example.com/notfound.html").
 		RequestHandler(greq.RetryBackoff(3, backoff.NewExponentialBackOff())).
 		ResponseHandler(func(res *http.Response, err error) error {
-		if res.StatusCode >= 400 && res.StatusCode < 500 {
+		if res != nil && res.StatusCode >= 400 && res.StatusCode < 500 {
 			return errors.New("40X error")
 		}
 		return err
