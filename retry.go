@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+// Retry retry to request at even intervals.
+// retry: retry number
+// interval: retry interval
 func Retry(retry int, interval time.Duration) func(*Request, func() (*http.Response, error)) error {
 	return func(req *Request, doReq func() (*http.Response, error)) error {
 		_retry := retry
@@ -30,6 +33,9 @@ func retryInterval(cb func() error, interval time.Duration) error {
 	return nil
 }
 
+// Exponential backoff
+// retry: retry number
+// b: cenkalti backoff object
 func RetryBackoff(retry int, b backoff.BackOff) func(*Request, func() (*http.Response, error)) error {
 	return func(req *Request, doReq func() (*http.Response, error)) error {
 		_retry := retry
@@ -41,5 +47,22 @@ func RetryBackoff(retry int, b backoff.BackOff) func(*Request, func() (*http.Res
 			}
 			return nil
 		}, b)
+	}
+}
+
+// We should retry, specified function returns true.
+// cb: callback function after request. If this function returns true, retry request cancelled.
+// interval: retry number
+func RetryOnResult(cb func(*http.Response, error) bool, interval time.Duration) func(*Request, func() (*http.Response, error)) error {
+	return func(req *Request, doReq func() (*http.Response, error)) error {
+		for {
+			res, err := doReq()
+			if cb(res, err) {
+				return err
+			}
+			if interval > 0 {
+				time.Sleep(interval)
+			}
+		}
 	}
 }
