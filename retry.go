@@ -50,7 +50,7 @@ func RetryBackoff(retry int, b backoff.BackOff) func(*Request, func() (*http.Res
 	}
 }
 
-// We should retry, specified function returns true.
+// We should retry if specified function returns true.
 // cb: callback function after request. If this function returns true, retry request cancelled.
 // interval: retry number
 func RetryOnResult(cb func(*http.Response, error) bool, interval time.Duration) func(*Request, func() (*http.Response, error)) error {

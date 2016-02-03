@@ -8,6 +8,7 @@ import (
 	"sync"
 )
 
+// Request context object.
 type Request struct {
 	method  string
 	rawurl  string
@@ -28,22 +29,27 @@ type (
 	ResponseHandler func(*http.Response, error) error
 )
 
+// Set get method
 func Get(rawurl string) *Request {
 	return New("GET", rawurl)
 }
 
+// Set post method
 func Post(rawurl string) *Request {
 	return New("POST", rawurl)
 }
 
+// Set put method
 func Put(rawurl string) *Request {
 	return New("PUT", rawurl)
 }
 
+// Set delete method
 func Delete(rawurl string) *Request {
 	return New("DELETE", rawurl)
 }
 
+// Create a new request object.
 func New(method, rawurl string) *Request {
 	req := &Request{}
 	req.method = method
@@ -51,24 +57,29 @@ func New(method, rawurl string) *Request {
 	return req
 }
 
+// Default request handler
 func defaultRequestHandler(doReq func() (*http.Response, error)) error {
 	_, err := doReq()
 	return err
 }
 
+// Client returns current *http.Client
 func (req *Request) Client() *http.Client {
 	return req.client
 }
 
+// SetClient sets *http.Client
 func (req *Request) SetClient(client http.Client) *Request {
 	req.client = &client
 	return req
 }
 
+// Header returns current http.Header.
 func (req *Request) Header() http.Header {
 	return req.header
 }
 
+// SetHeader sets key-values as request header.
 func (req *Request) SetHeader(key string, values ...string) *Request {
 	for i, value := range values {
 		if i == 0 {
@@ -80,6 +91,7 @@ func (req *Request) SetHeader(key string, values ...string) *Request {
 	return req
 }
 
+// SetHeader adds key-values to request header.
 func (req *Request) AddHeader(key string, values ...string) *Request {
 	for _, value := range values {
 		req.header.Add(key, value)
@@ -87,16 +99,19 @@ func (req *Request) AddHeader(key string, values ...string) *Request {
 	return req
 }
 
+// SetBody sets specified body as request body.
 func (req *Request) SetBody(body []byte) *Request {
 	req.body = body
 	return req
 }
 
+// SetUseragent sets a specified string as request useragent.
 func (req *Request) SetUseragent(value string) *Request {
 	req.SetHeader("User-Agent", value)
 	return req
 }
 
+// Do HTTP requests using itself parameters.
 func (req *Request) Do() (*http.Response, error) {
 	req.once.Do(func() {
 		if req.client == nil {
@@ -126,6 +141,7 @@ func (req *Request) Do() (*http.Response, error) {
 	return res, nil
 }
 
+// RequestHandler hooks an event which before sending request.
 func (req *Request) RequestHandler(requestHandler func(*Request, func() (*http.Response, error)) error) *Request {
 	req.requestHandler = func(doReq func() (*http.Response, error)) error {
 		if err := requestHandler(req, doReq); err != nil {
@@ -136,11 +152,13 @@ func (req *Request) RequestHandler(requestHandler func(*Request, func() (*http.R
 	return req
 }
 
+// ResponseHandler hooks an event which after sending request.
 func (req *Request) ResponseHandler(handler func(res *http.Response, err error) error) *Request {
 	req.responseHandler = handler
 	return req
 }
 
+// AddCookie adds a cookie to request headers.
 func (req *Request) AddCookie(cookie *http.Cookie) *Request {
 	req.cookies = append(req.cookies, cookie)
 	return req
@@ -171,19 +189,23 @@ func (req *Request) doReq(method, rawurl string) (*http.Response, error) {
 	return res, nil
 }
 
+// Type converter for string response body.
 func (req *Request) String() (string, error) {
 	return String(req.Do())
 }
 
+// Type converter for []byte response body.
 func (req *Request) Bytes() ([]byte, error) {
 	return Bytes(req.Do())
 }
 
+// JSON bind a response body to specified object.
 func (req *Request) JSON(ptr interface{}) error {
 	res, err := req.Do()
 	return JSON(res, err, ptr)
 }
 
+// Give true argument, print debug log when do request.
 func (req *Request) Debug(debug bool) *Request {
 	req.debug = debug
 	return req
