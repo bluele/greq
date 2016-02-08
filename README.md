@@ -12,14 +12,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bluele/greq"
-	"github.com/cenkalti/backoff"
 	"io/ioutil"
 	"net/http"
 )
 
 func main() {
 	res, err := greq.Get("http://example.com/notfound.html").
-		RequestHandler(greq.RetryBackoff(3, backoff.NewExponentialBackOff())).
+		RequestHandler(greq.RetryBackoff(3, greq.NewBackOff())).
 		ResponseHandler(func(res *http.Response, err error) error {
 		if res != nil && res.StatusCode >= 400 && res.StatusCode < 500 {
 			return errors.New("40X error")
@@ -41,6 +40,10 @@ Output
 $ go run examples/retry.go
 error: 40X error
 ```
+
+# TODO
+
+* Write more tests.
 
 # Author
 

@@ -9,11 +9,13 @@ import (
 // Retry retry to request at even intervals.
 // retry: retry number
 // interval: retry interval
-func Retry(retry int, interval time.Duration) func(*Request, func() (*http.Response, error)) error {
-	return func(req *Request, doReq func() (*http.Response, error)) error {
+func Retry(retry int, interval time.Duration) RequestHandler {
+	return func(req *Request, doReq RequestMethod) (*http.Response, error) {
+		var res *http.Response
 		_retry := retry
-		return retryInterval(func() error {
-			_, err := doReq()
+		return res, retryInterval(func() error {
+			var err error
+			res, err = doReq(req)
 			if err != nil && _retry > 0 {
 				_retry--
 				return err
@@ -36,11 +38,13 @@ func retryInterval(cb func() error, interval time.Duration) error {
 // Exponential backoff
 // retry: retry number
 // b: cenkalti backoff object
-func RetryBackoff(retry int, b backoff.BackOff) func(*Request, func() (*http.Response, error)) error {
-	return func(req *Request, doReq func() (*http.Response, error)) error {
+func RetryBackoff(retry int, b backoff.BackOff) RequestHandler {
+	return func(req *Request, doReq RequestMethod) (*http.Response, error) {
+		var res *http.Response
 		_retry := retry
-		return backoff.Retry(func() error {
-			_, err := doReq()
+		return res, backoff.Retry(func() error {
+			var err error
+			res, err = doReq(req)
 			if err != nil && _retry > 0 {
 				_retry--
 				return err
@@ -50,15 +54,19 @@ func RetryBackoff(retry int, b backoff.BackOff) func(*Request, func() (*http.Res
 	}
 }
 
+func NewBackOff() backoff.BackOff {
+	return backoff.NewExponentialBackOff()
+}
+
 // We should retry if specified function returns true.
 // cb: callback function after request. If this function returns true, retry request cancelled.
 // interval: retry number
-func RetryOnResult(cb func(*http.Response, error) bool, interval time.Duration) func(*Request, func() (*http.Response, error)) error {
-	return func(req *Request, doReq func() (*http.Response, error)) error {
+func RetryOnResult(cb func(*http.Response, error) bool, interval time.Duration) RequestHandler {
+	return func(req *Request, doReq RequestMethod) (*http.Response, error) {
 		for {
-			res, err := doReq()
+			res, err := doReq(req)
 			if cb(res, err) {
-				return err
+				return res, err
 			}
 			if interval > 0 {
 				time.Sleep(interval)

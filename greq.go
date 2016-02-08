@@ -25,7 +25,8 @@ type Request struct {
 }
 
 type (
-	RequestHandler  func(func() (*http.Response, error)) error
+	RequestMethod   func(*Request) (*http.Response, error)
+	RequestHandler  func(*Request, RequestMethod) (*http.Response, error)
 	ResponseHandler func(*http.Response, error) error
 )
 
@@ -55,12 +56,6 @@ func New(method, rawurl string) *Request {
 	req.method = method
 	req.rawurl = rawurl
 	return req
-}
-
-// Default request handler
-func defaultRequestHandler(doReq func() (*http.Response, error)) error {
-	_, err := doReq()
-	return err
 }
 
 // Client returns current *http.Client
@@ -126,7 +121,7 @@ func (req *Request) Do() (*http.Response, error) {
 	if rh == nil {
 		rh = defaultRequestHandler
 	}
-	if e := rh(func() (*http.Response, error) {
+	if res, e := rh(req, func(req *Request) (*http.Response, error) {
 		res, err = req.doReq(req.method, req.rawurl)
 		if req.responseHandler != nil {
 			err = req.responseHandler(res, err)
@@ -142,18 +137,13 @@ func (req *Request) Do() (*http.Response, error) {
 }
 
 // RequestHandler hooks an event which before sending request.
-func (req *Request) RequestHandler(requestHandler func(*Request, func() (*http.Response, error)) error) *Request {
-	req.requestHandler = func(doReq func() (*http.Response, error)) error {
-		if err := requestHandler(req, doReq); err != nil {
-			return err
-		}
-		return nil
-	}
+func (req *Request) RequestHandler(handler RequestHandler) *Request {
+	req.requestHandler = handler
 	return req
 }
 
 // ResponseHandler hooks an event which after sending request.
-func (req *Request) ResponseHandler(handler func(res *http.Response, err error) error) *Request {
+func (req *Request) ResponseHandler(handler ResponseHandler) *Request {
 	req.responseHandler = handler
 	return req
 }
