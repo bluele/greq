@@ -40,32 +40,52 @@ var (
 
 // Set get method
 func Get(rawurl string) *Request {
-	return New("GET", rawurl)
+	return New().Get().SetURL(rawurl)
 }
 
 // Set post method
-func Post(rawurl string) *Request {
-	return New("POST", rawurl).SetHeader(contentType, defaultPOSTContentType)
-}
-
-// Set put method
-func Put(rawurl string) *Request {
-	return New("PUT", rawurl)
-}
-
-// Set delete method
-func Delete(rawurl string) *Request {
-	return New("DELETE", rawurl)
+func Post(rawurl string, body []byte) *Request {
+	return New().Post().SetURL(rawurl).SetBody(body).SetHeader(contentType, defaultPOSTContentType)
 }
 
 // Create a new request object.
-func New(method, rawurl string) *Request {
+func New() *Request {
 	req := &Request{}
-	req.method = method
-	req.rawurl = rawurl
 	req.header = make(http.Header)
 	req.debug = Debug
 	req.client = http.DefaultClient
+	return req
+}
+
+// Method returns method name.
+func (req *Request) Method() string {
+	return req.method
+}
+
+// SetMethod sets specified string as http method.
+func (req *Request) SetMethod(method string) *Request {
+	req.method = method
+	return req
+}
+
+// Set get method
+func (req *Request) Get() *Request {
+	return req.SetMethod("GET")
+}
+
+// Set post method
+func (req *Request) Post() *Request {
+	return req.SetMethod("POST")
+}
+
+// URL returns url string.
+func (req *Request) URL() string {
+	return req.rawurl
+}
+
+// SetURL sets specified string as request url.
+func (req *Request) SetURL(rawurl string) *Request {
+	req.rawurl = rawurl
 	return req
 }
 

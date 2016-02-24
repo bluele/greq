@@ -57,7 +57,7 @@ func TestPostRequest(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	res, err := greq.Post(ts.URL).SetBody([]byte(expectedKey + "=" + expectedValue)).Do()
+	res, err := greq.Post(ts.URL, []byte(expectedKey+"="+expectedValue)).Do()
 	if err != nil {
 		t.Error(err)
 		return
