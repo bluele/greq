@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"sync"
 )
 
 // Request context object.
@@ -16,7 +15,6 @@ type Request struct {
 	body    []byte
 	client  *http.Client
 	cookies []*http.Cookie
-	once    sync.Once
 
 	responseHandler ResponseHandler
 	requestHandler  RequestHandler
@@ -67,6 +65,7 @@ func New(method, rawurl string) *Request {
 	req.rawurl = rawurl
 	req.header = make(http.Header)
 	req.debug = Debug
+	req.client = http.DefaultClient
 	return req
 }
 
@@ -120,11 +119,6 @@ func (req *Request) SetUseragent(value string) *Request {
 
 // Do HTTP requests using itself parameters.
 func (req *Request) Do() (*http.Response, error) {
-	req.once.Do(func() {
-		if req.client == nil {
-			req.client = &(*http.DefaultClient)
-		}
-	})
 	var (
 		res *http.Response
 		err error
