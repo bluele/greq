@@ -30,6 +30,16 @@ type (
 	ResponseHandler func(*http.Response, error) error
 )
 
+const (
+	contentType = "Content-type"
+
+	defaultPOSTContentType = "application/x-www-form-urlencoded"
+)
+
+var (
+	Debug = false
+)
+
 // Set get method
 func Get(rawurl string) *Request {
 	return New("GET", rawurl)
@@ -37,7 +47,7 @@ func Get(rawurl string) *Request {
 
 // Set post method
 func Post(rawurl string) *Request {
-	return New("POST", rawurl)
+	return New("POST", rawurl).SetHeader(contentType, defaultPOSTContentType)
 }
 
 // Set put method
@@ -55,6 +65,8 @@ func New(method, rawurl string) *Request {
 	req := &Request{}
 	req.method = method
 	req.rawurl = rawurl
+	req.header = make(http.Header)
+	req.debug = Debug
 	return req
 }
 

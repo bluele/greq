@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bluele/greq"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -41,6 +42,40 @@ func TestGetRequest(t *testing.T) {
 	}
 }
 
+func TestPostRequest(t *testing.T) {
+	var (
+		expectedKey   = "key"
+		expectedValue = "value"
+	)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			fmt.Fprint(w, "failed")
+			return
+		}
+		r.ParseForm()
+		fmt.Fprintf(w, r.Form.Get(expectedKey))
+	}))
+	defer ts.Close()
+
+	res, err := greq.Post(ts.URL).SetBody([]byte(expectedKey + "=" + expectedValue)).Do()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if res == nil {
+		t.Error("res should not be nil")
+		return
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if string(body) != expectedValue {
+		t.Errorf("body should not be %v", string(body))
+	}
+}
+
 func TestJSONResponse(t *testing.T) {
 	correctResponse := Response{1, "bluele"}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +88,7 @@ func TestJSONResponse(t *testing.T) {
 	err := greq.Get(ts.URL).JSON(resp)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	if resp.ID != correctResponse.ID || resp.Name != correctResponse.Name {
