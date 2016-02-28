@@ -1,9 +1,10 @@
 package greq
 
 import (
-	"github.com/cenkalti/backoff"
 	"net/http"
 	"time"
+
+	"github.com/cenkalti/backoff"
 )
 
 // Retry retry to request at even intervals.
@@ -32,7 +33,6 @@ func retryInterval(cb func() error, interval time.Duration) error {
 		}
 		time.Sleep(interval)
 	}
-	return nil
 }
 
 // Exponential backoff
@@ -54,6 +54,7 @@ func RetryBackoff(retry int, b backoff.BackOff) RequestHandler {
 	}
 }
 
+// NewBackOff returns cenkalti/backoff.BackOff
 func NewBackOff() backoff.BackOff {
 	return backoff.NewExponentialBackOff()
 }

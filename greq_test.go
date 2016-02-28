@@ -2,12 +2,15 @@ package greq_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/bluele/greq"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/bluele/greq"
 )
 
 type Response struct {
@@ -49,6 +52,7 @@ func TestPostRequest(t *testing.T) {
 	)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			fmt.Fprint(w, "failed")
 			return
 		}
@@ -57,7 +61,10 @@ func TestPostRequest(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	res, err := greq.Post(ts.URL, []byte(expectedKey+"="+expectedValue)).Do()
+	res, err := greq.
+		Post(ts.URL, []byte(expectedKey+"="+expectedValue)).
+		ResponseHandler(handle4XXResponseHandler).
+		Do()
 	if err != nil {
 		t.Error(err)
 		return
@@ -94,4 +101,67 @@ func TestJSONResponse(t *testing.T) {
 	if resp.ID != correctResponse.ID || resp.Name != correctResponse.Name {
 		t.Errorf("response should be %v", correctResponse)
 	}
+}
+
+func TestRetryRequest(t *testing.T) {
+	var (
+		expectedKey   = "key"
+		expectedValue = "value"
+
+		retryNumber  = 1
+		requestCount = 0
+	)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Fprint(w, "failed")
+			return
+		}
+
+		requestCount++
+		if requestCount <= retryNumber {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "failed")
+			return
+		}
+		r.ParseForm()
+		fmt.Fprintf(w, r.Form.Get(expectedKey))
+	}))
+	defer ts.Close()
+
+	res, err := greq.
+		Post(ts.URL, []byte(expectedKey+"="+expectedValue)).
+		RequestHandler(greq.Retry(retryNumber, 100*time.Millisecond)).
+		ResponseHandler(handle5XXResponseHandler).
+		Do()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if res == nil {
+		t.Error("res should not be nil")
+		return
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if string(body) != expectedValue {
+		t.Errorf("body should not be %v", string(body))
+	}
+}
+
+func handle4XXResponseHandler(res *http.Response, err error) error {
+	if res != nil && res.StatusCode >= 400 && res.StatusCode < 500 {
+		return errors.New("4XX error")
+	}
+	return err
+}
+
+func handle5XXResponseHandler(res *http.Response, err error) error {
+	if res != nil && res.StatusCode >= 500 {
+		return errors.New("5XX error")
+	}
+	return err
 }
